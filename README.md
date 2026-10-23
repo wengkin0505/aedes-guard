@@ -23,17 +23,19 @@ This repository contains **two interactive prototypes** that let you see all of 
 
 ## How to open the prototypes
 
-You need a recent **Google Chrome or Microsoft Edge** on a laptop or desktop, and an **internet connection** (the pages load the 3D engine, map tiles and fonts online). Nothing needs to be installed.
+### Option A: click a link (easiest)
 
-### Option A: open online (easiest)
+Just click. Each link opens the prototype in your browser, so you don't need to download or install anything.
 
-If the team has turned on GitHub Pages, click:
+| | Open the prototype |
+|---|---|
+| 🏠 | **[Landing page](https://wengkin0505.github.io/aedes-guard/)**: links to both prototypes |
+| 🧊 | **[Drain Digital Twin](https://wengkin0505.github.io/aedes-guard/digital-twin.html)**: start here, then press **Play guided demo** |
+| 📊 | **[Township Dashboard](https://wengkin0505.github.io/aedes-guard/dashboard.html)**: press **Run demo storm** |
 
-- **Landing page:** `https://<github-username>.github.io/aedesguard-virtual-prototype/`
-- **Digital Twin:** `https://<github-username>.github.io/aedesguard-virtual-prototype/digital-twin.html`
-- **Dashboard:** `https://<github-username>.github.io/aedesguard-virtual-prototype/dashboard.html`
+Use a recent **Google Chrome or Microsoft Edge** on a laptop or desktop, with an **internet connection** (the pages load the 3D engine, map tiles and fonts online).
 
-### Option B: download and double-click
+### Option B: download and double-click (if the links don't work)
 
 1. On this repository page, click the green **Code** button → **Download ZIP**.
 2. Unzip the folder.
