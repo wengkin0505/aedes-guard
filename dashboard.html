@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AedesGuard Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --surface-2:#f8f9f7; --fg:#1b211e; --muted:#5d6762; --line:#dde1dd; --grid:#e8ebe8;
+  --accent:#1f6feb; --series:#2f74c0;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b; --info:#2f74c0; --offline:#8a918d;
+  --good-ink:#0a6e0a; --warning-ink:#7a5200; --serious-ink:#9a4220; --critical-ink:#a82727; --info-ink:#1d5a9e; --offline-ink:#4f5652;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121614; --surface:#1b201e; --surface-2:#202624; --fg:#e6ebe8; --muted:#9ba5a0; --line:#2f3934; --grid:#28302c;
+    --series:#6ba9ec; --info:#6ba9ec;
+    --good-ink:#5fd35f; --warning-ink:#fab219; --serious-ink:#ef9a78; --critical-ink:#f07a7a; --info-ink:#8dbdf0; --offline-ink:#aab1ad;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1b201e; --surface-2:#202624; --fg:#e6ebe8; --muted:#9ba5a0; --line:#2f3934; --grid:#28302c;
+  --series:#6ba9ec; --info:#6ba9ec;
+  --good-ink:#5fd35f; --warning-ink:#fab219; --serious-ink:#ef9a78; --critical-ink:#f07a7a; --info-ink:#8dbdf0; --offline-ink:#aab1ad;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--font)}
+.wrap{max-width:1320px;margin:0 auto;padding:16px;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{font-size:20px;margin:0;letter-spacing:.01em}
+.brand .sub{color:var(--muted);font-size:13px}
+.logo{width:34px;height:34px;border-radius:8px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-weight:800}
+.pills{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font:600 12px/1 var(--font);padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--offline);display:inline-block}
+.pill.on i{background:var(--good)} .pill.err i{background:var(--critical)} .pill.wait i{background:var(--warning)}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:600}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.small{padding:4px 9px;font-size:12px}
+select,input[type=text],input[type=number],input[type=password]{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.banner{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warning);padding:10px 14px;border-radius:8px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .label{color:var(--muted);font-size:12.5px;font-weight:600}
+.kpi .val{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.kpi .note{color:var(--muted);font-size:12.5px}
+.kpi.alert{border-color:var(--critical);box-shadow:inset 0 0 0 1px var(--critical)}
+.main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.card h2{font-size:15px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h2 .muted{font-weight:500}
+.muted{color:var(--muted)}
+#map{height:430px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.sel{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--fg)}
+.chip{display:inline-flex;align-items:center;gap:5px;font:600 12px/1 var(--font);padding:5px 8px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.chip b{font-weight:800}
+.tone-good{color:var(--good-ink);background:color-mix(in srgb,var(--good) 14%,var(--surface));border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.tone-warning{color:var(--warning-ink);background:color-mix(in srgb,var(--warning) 20%,var(--surface));border-color:color-mix(in srgb,var(--warning) 55%,transparent)}
+.tone-serious{color:var(--serious-ink);background:color-mix(in srgb,var(--serious) 18%,var(--surface));border-color:color-mix(in srgb,var(--serious) 50%,transparent)}
+.tone-critical{color:var(--critical-ink);background:color-mix(in srgb,var(--critical) 15%,var(--surface));border-color:color-mix(in srgb,var(--critical) 50%,transparent)}
+.tone-info{color:var(--info-ink);background:color-mix(in srgb,var(--info) 14%,var(--surface));border-color:color-mix(in srgb,var(--info) 40%,transparent)}
+.tone-offline{color:var(--offline-ink);background:color-mix(in srgb,var(--offline) 16%,var(--surface));border-color:color-mix(in srgb,var(--offline) 45%,transparent)}
+.pin{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:800 12px/1 var(--font);color:#fff;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4)}
+.pin.good{background:var(--good)} .pin.warning{background:var(--warning);color:#1b211e} .pin.serious{background:var(--serious);color:#1b211e}
+.pin.critical{background:var(--critical);animation:pulse 1.4s infinite} .pin.info{background:#2f74c0} .pin.offline{background:var(--offline)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(208,59,59,.6)}70%{box-shadow:0 0 0 14px rgba(208,59,59,0)}100%{box-shadow:0 0 0 0 rgba(208,59,59,0)}}
+@media (prefers-reduced-motion:reduce){.pin.critical{animation:none}}
+.detail{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+.fields{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px;align-content:start}
+.fields dt{color:var(--muted)} .fields dd{margin:0;font-variant-numeric:tabular-nums}
+.chartbox{position:relative}
+.chartbox svg{display:block;width:100%;height:auto}
+.chartbox svg text{fill:var(--muted);font:11px var(--font)}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);display:none}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:10px;border-radius:2px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+.events{max-height:360px;overflow:auto}
+.ev{display:grid;grid-template-columns:96px auto 1fr auto;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line);font-size:13.5px}
+.ev time{color:var(--muted);font:12px var(--mono)}
+.ev .who{font-weight:600}
+.ev.acked{opacity:.55}
+.empty{color:var(--muted);padding:18px;text-align:center}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);padding:0;max-width:560px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{padding:18px;display:grid;gap:12px}
+.dlg h3{margin:0}
+.field{display:grid;gap:4px}
+.field label{font-weight:600;font-size:13px}
+.field .hint{color:var(--muted);font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sim-tag{font:600 10.5px/1 var(--font);padding:3px 5px;border-radius:4px;border:1px dashed var(--muted);color:var(--muted);margin-left:6px;vertical-align:middle}
+@media (max-width:980px){.main,.detail{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#map{height:340px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">AG</div>
+      <div><h1>AedesGuard</h1><div class="sub">Township drain monitor · wetness, flushing and blockage alerts</div></div>
+    </div>
+    <div class="pills">
+      <span class="pill" id="pillFb"><i></i><span>Firebase off</span></span>
+      <span class="pill" id="pillTg"><i></i><span>Telegram off</span></span>
+      <span class="pill" id="pillSim"><i></i><span>Simulation off</span></span>
+      <button id="btnSettings">Settings</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="kpis" aria-label="Summary">
+    <div class="kpi" id="kDry"><div class="label">Drains dry</div><div class="val">–</div><div class="note"></div></div>
+    <div class="kpi" id="kBlock"><div class="label">Need clearing</div><div class="val">–</div><div class="note">still wet after 2 flushes</div></div>
+    <div class="kpi" id="kFlood"><div class="label">Flood risk now</div><div class="val">–</div><div class="note">water rising fast in rain</div></div>
+    <div class="kpi" id="kFlush"><div class="label">Flushes run</div><div class="val">–</div><div class="note">this session</div></div>
+  </section>
+
+  <section class="card" id="simCard" hidden>
+    <h2>Demo controls <span class="muted" id="simClock"></span></h2>
+    <div class="controls">
+      <button class="primary" id="btnStorm">Run demo storm (3 h rain)</button>
+      <button id="btnRainOn">Rain on</button>
+      <button id="btnRainOff">Rain off</button>
+      <label>Speed
+        <select id="selSpeed">
+          <option value="250">1 h = 0.25 s (48 h ≈ 12 s)</option>
+          <option value="1000">1 h = 1 s (48 h ≈ 48 s)</option>
+          <option value="5000">1 h = 5 s</option>
+        </select>
+      </label>
+      <button id="btnSimReset">Reset simulation</button>
+    </div>
+    <p class="muted" style="margin:8px 0 0;font-size:12.5px">Simulated drains run the same control logic as the firmware (wet 48 h → flush → re-check after 2 h → blockage after 2 failed flushes), with time compressed. They are marked <span class="sim-tag">SIM</span> everywhere.</p>
+  </section>
+
+  <section class="main">
+    <div class="card">
+      <h2>Map <span class="muted" id="mapNote"></span></h2>
+      <div id="map"></div>
+    </div>
+    <div class="card">
+      <h2>Drains <span class="muted" id="drainCount"></span></h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Status</th><th>Drain</th><th class="num">Hours wet</th><th class="num">Flushes</th><th class="num">Level</th></tr></thead>
+          <tbody id="drainRows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="drainEmpty" hidden>No drains yet. Turn on the simulation or connect Firebase in Settings.</div>
+    </div>
+  </section>
+
+  <section class="card" id="detailCard" hidden>
+    <h2><span id="dTitle"></span> <span id="dChip"></span></h2>
+    <div class="detail">
+      <div>
+        <div class="chartbox" id="chart"></div>
+        <div class="legend">
+          <span><i style="background:var(--series);height:3px"></i>Water level (cm)</span>
+          <span><i style="background:color-mix(in srgb,var(--warning) 28%,transparent)"></i>Floor wet</span>
+          <span><i style="background:color-mix(in srgb,var(--info) 30%,transparent)"></i>Flushing</span>
+          <span><i style="border-top:2px dashed var(--critical);height:0"></i>Flood-risk level</span>
+        </div>
+      </div>
+      <div style="display:grid;gap:14px;align-content:start">
+        <dl class="fields" id="dFields"></dl>
+        <div id="dSim" class="controls" hidden></div>
+        <div class="row"><button class="small" id="btnHistCsv">Export readings (CSV)</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Event log <span class="row"><button class="small" id="btnEvCsv">Export events (CSV)</button></span></h2>
+    <div class="events" id="events"></div>
+  </section>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" class="dlg" id="settingsForm">
+    <h3>Settings</h3>
+    <p class="muted" style="margin:0;font-size:12.5px">Saved in this browser only. The bot token is never written into the page file, so it's safe to deploy this page publicly.</p>
+    <div class="field">
+      <label for="fDb">Firebase Realtime Database URL</label>
+      <input type="text" id="fDb" placeholder="https://aedes-guard-default-rtdb.firebaseio.com">
+      <span class="hint">Database must be in test mode (public read/write) for this prototype.</span>
+    </div>
+    <div class="field">
+      <label for="fTok">Telegram bot token</label>
+      <input type="password" id="fTok" placeholder="123456789:AA...">
+    </div>
+    <div class="field">
+      <label for="fChat">Telegram chat ID</label>
+      <input type="text" id="fChat" placeholder="e.g. -1001234567890 for a group">
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="fStation"> This screen sends alerts and writes the event log</label>
+    </div>
+    <span class="hint muted" style="font-size:12px">Turn this on for one screen only, or every alert is sent twice.</span>
+    <div class="row">
+      <label><input type="checkbox" id="fSim"> Show simulated drains</label>
+      <label><input type="checkbox" id="fInfo"> Also send flush notices to Telegram</label>
+    </div>
+    <div class="field">
+      <label for="fOff">Mark a real drain offline after (seconds without data)</label>
+      <input type="number" id="fOff" min="10" step="10">
+    </div>
+    <div class="row">
+      <button type="button" id="btnTestTg">Send test alert</button>
+      <span class="muted" id="tgResult" style="font-size:12.5px"></span>
+    </div>
+    <div class="row">
+      <button type="button" id="btnTestFb">Write a test drain to Firebase</button>
+      <button type="button" id="btnDelFb">Remove test drain</button>
+      <span class="muted" id="fbResult" style="font-size:12.5px"></span>
+    </div>
+    <div class="row" style="justify-content:flex-end">
+      <button value="cancel">Cancel</button>
+      <button class="primary" id="btnSave" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => (v === null || v === undefined || v === '' || isNaN(+v)) ? null : +v;
+const fmt = (v, d = 1, unit = '') => v === null ? '–' : (+v).toFixed(d) + unit;
+const clock = t => new Date(t).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+/* ---------- settings ---------- */
+const DEFAULTS = {dbUrl:'', tgToken:'', tgChat:'', alertStation:true, sim:true, hourMs:250, offlineS:120, tgInfo:false};
+function loadSettings(){ try { return {...DEFAULTS, ...JSON.parse(localStorage.getItem('aedesguard.settings') || '{}')}; } catch { return {...DEFAULTS}; } }
+function saveSettings(){ try { localStorage.setItem('aedesguard.settings', JSON.stringify(S)); } catch {} }
+let S = loadSettings();
+
+/* ---------- status vocabulary (shared with firmware) ---------- */
+const STATUS = {
+  DRY:        {label:'Dry',            icon:'✓', tone:'good',     rank:8},
+  RAINING:    {label:'Raining',        icon:'☂', tone:'info',     rank:7},
+  WET:        {label:'Wet',            icon:'≈', tone:'warning',  rank:4},
+  FLUSHING:   {label:'Flushing',       icon:'↻', tone:'info',     rank:5},
+  RECHECK:    {label:'Re-checking',    icon:'◷', tone:'info',     rank:6},
+  TANK_LOW:   {label:'Tank low',       icon:'▽', tone:'serious',  rank:2},
+  BLOCKAGE:   {label:'Needs clearing', icon:'✕', tone:'critical', rank:0},
+  FLOOD_RISK: {label:'Flood risk',     icon:'▲', tone:'critical', rank:1},
+  OFFLINE:    {label:'Offline',        icon:'–', tone:'offline',  rank:3},
+};
+const ALERT_STATES = new Set(['BLOCKAGE','FLOOD_RISK','TANK_LOW','OFFLINE']);
+const FLOOD_LEVEL_CM = 30;
+const chip = st => { const s = STATUS[st] || STATUS.DRY; return `<span class="chip tone-${s.tone}"><b aria-hidden="true">${s.icon}</b>${s.label}</span>`; };
+
+/* ---------- data stores ---------- */
+const live = {};      // id -> node object from Firebase /nodes
+const hist = {};      // id -> [{t, level, wet, state}]
+const prev = {};      // id -> last seen display state
+let fbEvents = {};    // key -> event object from Firebase /events
+let localEvents = []; // events not stored in Firebase (simulation, or no DB)
+let selected = null;
+let fbStatus = 'off';
+
+/* ---------- Firebase (REST streaming, no SDK) ---------- */
+let esNodes = null, esEvents = null;
+const baseUrl = () => S.dbUrl.trim().replace(/\.json$/,'').replace(/\/+$/,'');
+
+function setAt(tree, parts, val){
+  if (parts.length === 0) { tree.root = val; return; }
+  if (tree.root === null || typeof tree.root !== 'object') tree.root = {};
+  let o = tree.root;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (o[parts[i]] === null || typeof o[parts[i]] !== 'object') o[parts[i]] = {};
+    o = o[parts[i]];
+  }
+  const last = parts[parts.length - 1];
+  if (val === null) delete o[last]; else o[last] = val;
+}
+function applyStream(tree, type, raw){
+  let msg; try { msg = JSON.parse(raw); } catch { return false; }
+  if (!msg || typeof msg.path !== 'string') return false;
+  const parts = msg.path.split('/').filter(Boolean);
+  if (type === 'patch') { for (const k in (msg.data || {})) setAt(tree, [...parts, ...k.split('/').filter(Boolean)], msg.data[k]); }
+  else setAt(tree, parts, msg.data);
+  return true;
+}
+function connectFirebase(){
+  [esNodes, esEvents].forEach(e => e && e.close());
+  esNodes = esEvents = null;
+  for (const k in live) { delete live[k]; delete prev[k]; }
+  fbEvents = {};
+  if (!S.dbUrl.trim()) { fbStatus = 'off'; renderAll(); return; }
+  fbStatus = 'connecting'; renderConn();
+  const base = baseUrl();
+  const nodeTree = {root:{}};
+  esNodes = new EventSource(base + '/nodes.json');
+  const onNode = ev => { if (applyStream(nodeTree, ev.type, ev.data)) { syncLive(nodeTree.root || {}); fbStatus = 'live'; renderAll(); } };
+  esNodes.addEventListener('put', onNode);
+  esNodes.addEventListener('patch', onNode);
+  esNodes.addEventListener('cancel', () => { fbStatus = 'denied'; renderConn(); });
+  esNodes.onerror = () => { if (fbStatus !== 'live') fbStatus = 'error'; renderConn(); };
+  const evTree = {root:{}};
+  esEvents = new EventSource(base + '/events.json?orderBy=%22%24key%22&limitToLast=200');
+  const onEv = ev => { if (applyStream(evTree, ev.type, ev.data)) { fbEvents = (evTree.root && typeof evTree.root === 'object') ? evTree.root : {}; renderEvents(); renderKPIs(); } };
+  esEvents.addEventListener('put', onEv);
+  esEvents.addEventListener('patch', onEv);
+}
+function syncLive(root){
+  if (!root || typeof root !== 'object') root = {};
+  for (const id in live) if (!(id in root)) { delete live[id]; delete prev[id]; }
+  for (const [id, n] of Object.entries(root)) {
+    if (!n || typeof n !== 'object') continue;
+    live[id] = n;
+    const h = hist[id] || (hist[id] = []);
+    const t = num(n.last_seen) || Date.now();
+    const level = num(n.level_cm);
+    const lastPt = h[h.length - 1];
+    if (!lastPt || lastPt.t !== t || lastPt.level !== level || lastPt.state !== n.state) {
+      h.push({t, level: level ?? 0, wet: !!n.wet, state: String(n.state || '').toUpperCase()});
+      if (h.length > 600) h.splice(0, h.length - 600);
+    }
+  }
+  checkTransitions();
+}
+async function fbWrite(method, path, body){
+  const r = await fetch(baseUrl() + path + '.json', {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* ---------- Telegram ---------- */
+async function sendTelegram(text){
+  if (!S.tgToken || !S.tgChat) return 'not configured';
+  if (!/^\d+:[\w-]+$/.test(S.tgToken.trim())) return 'token looks wrong';
+  const url = `https://api.telegram.org/bot${S.tgToken.trim()}/sendMessage`;
+  const body = new URLSearchParams({chat_id: S.tgChat.trim(), text, disable_web_page_preview: 'true'});
+  try {
+    const r = await fetch(url, {method:'POST', body});
+    const j = await r.json();
+    return j.ok ? 'sent' : (j.description || 'error');
+  } catch {
+    try { await fetch(url, {method:'POST', body, mode:'no-cors'}); return 'sent (could not confirm)'; }
+    catch { return 'network error'; }
+  }
+}
+
+/* ---------- simulation: same control logic as the v2 firmware ---------- */
+const FAULTS = {
+  normal:  {label:'Drains normally',  residual:0},
+  puddle:  {label:'Leaves a puddle',  residual:1.5},
+  clogged: {label:'Strainer clogged', residual:15},
+};
+const SIM_DEFS = [ // illustrative positions only
+  ['A','puddle', 3.1880,101.4985],
+  ['B','normal', 3.1866,101.5014],
+  ['C','clogged',3.1849,101.4996],
+  ['D','normal', 3.1863,101.4964],
+  ['E','puddle', 3.1842,101.5024],
+];
+const sims = {};
+let simHours = 0, simT0 = Date.now(), stormLeft = 0, simTimer = null;
+
+function makeSims(){
+  for (const id in sims) { delete sims[id]; delete prev[id]; delete hist[id]; }
+  localEvents = localEvents.filter(e => !e.sim);
+  simHours = 0; simT0 = Date.now(); stormLeft = 0;
+  for (const [c, fault, lat, lng] of SIM_DEFS) {
+    const id = 'sim-' + c;
+    sims[id] = {id, code:c, name:'Drain ' + c, lat, lng, fault, raining:false, level:0, wet:false, dryLeft:0,
+                wetH:0, flushes:0, state:'DRY', flushLeft:0, recheckLeft:0, tankOk:true, cleared:false, batt:11.8};
+    hist[id] = [];
+  }
+}
+function startFlush(d){ d.flushes++; d.state = 'FLUSHING'; d.flushLeft = 0.5; }
+function stepSim(d, dt){
+  // hydraulics
+  const residual = d.cleared ? 0 : FAULTS[d.fault].residual;
+  if (d.raining) {
+    d.level = d.fault === 'clogged' ? Math.min(42, d.level + 7) : Math.min(12, d.level + 4);
+  } else if (d.level > residual) {
+    d.level = Math.max(residual, d.level - (d.fault === 'clogged' ? 3 : 6));
+  }
+  if (d.state === 'FLUSHING') d.level = Math.min(42, d.level + 2);
+  // floor wetness probe: stays wet ~1 h after the last water drains away
+  if (d.level > 0.2) { d.wet = true; d.dryLeft = 1; }
+  else { d.level = 0; if (d.dryLeft > 0) d.dryLeft -= dt; d.wet = d.dryLeft > 0; }
+  // control logic
+  if (d.raining) {
+    d.wetH = 0; d.flushes = 0;
+    d.state = d.level >= FLOOD_LEVEL_CM ? 'FLOOD_RISK' : 'RAINING';     // skip flushing while it rains
+  } else if (d.state === 'BLOCKAGE') {
+    if (!d.wet) { d.state = 'DRY'; d.wetH = 0; d.flushes = 0; } else d.wetH += dt;
+  } else if (d.state === 'FLUSHING') {
+    d.wetH += dt; d.flushLeft -= dt;
+    if (d.flushLeft <= 0) { if (d.fault !== 'clogged') d.cleared = true; d.state = 'RECHECK'; d.recheckLeft = 2; }
+  } else if (d.state === 'RECHECK') {
+    if (d.wet) d.wetH += dt;
+    d.recheckLeft -= dt;
+    if (d.recheckLeft <= 0) {
+      if (!d.wet) { d.state = 'DRY'; d.wetH = 0; d.flushes = 0; }
+      else if (d.flushes >= 2) d.state = 'BLOCKAGE';
+      else startFlush(d);
+    }
+  } else if (!d.wet) {
+    d.state = 'DRY'; d.wetH = 0; d.flushes = 0;
+  } else {
+    d.wetH += dt;
+    if (d.wetH >= 48) { if (d.tankOk) startFlush(d); else d.state = 'TANK_LOW'; }
+    else d.state = 'WET';
+  }
+  const h = hist[d.id];
+  h.push({t: simT0 + simHours * 3.6e6, level: d.level, wet: d.wet, state: d.state});
+  if (h.length > 600) h.splice(0, h.length - 600);
+}
+function setRain(d, on){ if (on && !d.raining) d.cleared = false; d.raining = on; }
+function setRainAll(on){ Object.values(sims).forEach(d => setRain(d, on)); }
+function simTick(){
+  if (!S.sim) return;
+  const dt = 0.25;           // one tick = 15 simulated minutes, like the firmware's sampling interval
+  simHours += dt;
+  if (stormLeft > 0) { stormLeft -= dt; if (stormLeft <= 0) setRainAll(false); }
+  Object.values(sims).forEach(d => stepSim(d, dt));
+  checkTransitions();
+}
+function restartSimTimer(){
+  clearInterval(simTimer);
+  simTimer = setInterval(simTick, Math.max(20, S.hourMs / 4));
+}
+
+/* ---------- unified drain view ---------- */
+function allDrains(){
+  const now = Date.now(), out = [];
+  for (const [id, n] of Object.entries(live)) {
+    let st = String(n.state || '').toUpperCase();
+    if (!STATUS[st] || st === 'OFFLINE') st = n.wet ? 'WET' : 'DRY';
+    const last = num(n.last_seen);
+    const offline = last !== null && now - last > S.offlineS * 1000;
+    out.push({id, sim:false, name: String(n.name || id), lat: num(n.lat), lng: num(n.lng),
+      state: offline ? 'OFFLINE' : st, level: num(n.level_cm), hoursWet: num(n.hours_wet), flushes: num(n.flushes),
+      tankOk: n.tank_ok === undefined ? null : !!n.tank_ok, batt: num(n.batt_v), raining: !!n.raining, last});
+  }
+  if (S.sim) for (const d of Object.values(sims)) {
+    out.push({id:d.id, sim:true, name:d.name, lat:d.lat, lng:d.lng, state:d.state, level:d.level, hoursWet:d.wetH,
+      flushes:d.flushes, tankOk:d.tankOk, batt:d.batt, raining:d.raining, last:null, fault:d.fault});
+  }
+  return out;
+}
+
+/* ---------- events & alerts ---------- */
+function describe(d, from, to){
+  const h = d.hoursWet !== null ? Math.round(d.hoursWet) : null;
+  switch (to) {
+    case 'WET':        return from === 'FLOOD_RISK' ? `Rain stopped. Water held at ${fmt(d.level,1,' cm')}.` : 'Floor still wet after rain. 48 h timer started.';
+    case 'RAINING':    return 'Rain detected. Flushing paused.';
+    case 'FLUSHING':   return `Flush #${d.flushes ?? ''} started (floor wet ${h ?? '?'} h).`;
+    case 'TANK_LOW':   return 'Wet for 48 h but the flush tank is low. Flush skipped; refill the tank.';
+    case 'BLOCKAGE':   return 'Still wet after 2 flushes. Strainer or debris basket needs clearing.';
+    case 'FLOOD_RISK': return `Water rising fast during rain (${fmt(d.level,0,' cm')}). Outlet may be clogged.`;
+    case 'OFFLINE':    return `No data for over ${S.offlineS} s. Check power or connection.`;
+    case 'DRY':
+      if (from === 'FLUSHING' || from === 'RECHECK') return 'Dry after flush.';
+      if (from === 'BLOCKAGE') return 'Cleared. Floor is dry again.';
+      if (from === 'OFFLINE') return 'Back online.';
+      if (from === 'WET' || from === 'TANK_LOW') return 'Dried on its own. No flush needed.';
+      return null;
+    default:
+      return from === 'OFFLINE' ? 'Back online.' : null;
+  }
+}
+function onTransition(d, from, to){
+  const msg = describe(d, from, to);
+  if (!msg) return;
+  const ev = {ts: Date.now(), drain: d.id, name: d.name, from, to, msg, sim: d.sim, ack: false};
+  // the event log
+  if (!d.sim && S.alertStation && fbStatus === 'live') {
+    fbWrite('POST', '/events', {...ev, ts: {'.sv':'timestamp'}}).catch(() => { localEvents.push(ev); renderEvents(); });
+  } else {
+    localEvents.push(ev);
+    if (localEvents.length > 400) localEvents.shift();
+  }
+  // Telegram
+  const resolved = (from === 'BLOCKAGE' || from === 'FLOOD_RISK' || from === 'OFFLINE') && !ALERT_STATES.has(to);
+  const notify = ALERT_STATES.has(to) || resolved || (S.tgInfo && to === 'FLUSHING');
+  if (S.alertStation && notify && S.tgToken && S.tgChat) {
+    const icon = {BLOCKAGE:'🚧', FLOOD_RISK:'🌊', TANK_LOW:'🪣', OFFLINE:'📡', FLUSHING:'🚿'}[to] || '✅';
+    const where = (d.lat !== null && d.lng !== null) ? `\n📍 https://maps.google.com/?q=${d.lat},${d.lng}` : '';
+    const text = `${icon} AedesGuard: ${(STATUS[to] || {}).label || to}\n${d.name}${d.sim ? ' (simulated)' : ''}\n${msg}${where}\n🕒 ${new Date().toLocaleString()}`;
+    sendTelegram(text);
+  }
+  renderEvents();
+}
+function checkTransitions(){
+  for (const d of allDrains()) {
+    const p = prev[d.id];
+    if (p !== undefined && p !== d.state) onTransition(d, p, d.state);
+    prev[d.id] = d.state;
+  }
+}
+function allEvents(){
+  const fb = Object.entries(fbEvents || {}).filter(([, v]) => v && typeof v === 'object').map(([k, v]) => ({...v, key:k, fb:true}));
+  return [...fb, ...localEvents].sort((a, b) => (num(b.ts) || 0) - (num(a.ts) || 0));
+}
+
+/* ---------- rendering ---------- */
+let map = null; const markers = {}; let fitKey = '';
+function initMap(){
+  if (typeof L === 'undefined') { $('#map').innerHTML = '<div class="empty">Map library failed to load (offline?). The rest of the dashboard still works.</div>'; return; }
+  map = L.map('map', {zoomControl:true}).setView([3.1862, 101.4995], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+}
+function renderMap(list){
+  if (!map) return;
+  const withPos = list.filter(d => d.lat !== null && d.lng !== null);
+  const ids = new Set(withPos.map(d => d.id));
+  for (const id in markers) if (!ids.has(id)) { map.removeLayer(markers[id].m); delete markers[id]; }
+  for (const d of withPos) {
+    const s = STATUS[d.state] || STATUS.DRY;
+    const key = d.state + '|' + d.name;
+    const html = `<div class="pin ${s.tone}" title="${esc(d.name)}">${s.icon}</div>`;
+    if (!markers[d.id]) {
+      const m = L.marker([d.lat, d.lng], {icon: L.divIcon({html, className:'', iconSize:[30,30], iconAnchor:[15,15]})}).addTo(map);
+      m.on('click', () => { selected = d.id; renderAll(); });
+      m.bindTooltip('', {direction:'top', offset:[0,-14]});
+      markers[d.id] = {m, key:''};
+    }
+    const mk = markers[d.id];
+    mk.m.setLatLng([d.lat, d.lng]);
+    if (mk.key !== key) { mk.m.setIcon(L.divIcon({html, className:'', iconSize:[30,30], iconAnchor:[15,15]})); mk.key = key; }
+    mk.m.setTooltipContent(`<b>${esc(d.name)}</b>${d.sim ? ' (sim)' : ''}<br>${s.label}${d.hoursWet ? ` · wet ${Math.round(d.hoursWet)} h` : ''}`);
+  }
+  const fk = [...ids].sort().join(',');
+  if (fk && fk !== fitKey) {
+    fitKey = fk;
+    map.fitBounds(L.latLngBounds(withPos.map(d => [d.lat, d.lng])).pad(0.35), {maxZoom:17});
+  }
+  $('#mapNote').textContent = list.some(d => d.sim) ? 'simulated drain positions are illustrative' : '';
+}
+function renderKPIs(list){
+  list = list || allDrains();
+  const n = list.length;
+  const dry = list.filter(d => d.state === 'DRY').length;
+  const block = list.filter(d => d.state === 'BLOCKAGE').length;
+  const flood = list.filter(d => d.state === 'FLOOD_RISK').length;
+  const flushes = allEvents().filter(e => e.to === 'FLUSHING').length;
+  $('#kDry .val').textContent = n ? Math.round(dry / n * 100) + '%' : '–';
+  $('#kDry .note').textContent = n ? `${dry} of ${n} drains` : 'no drains';
+  $('#kBlock .val').textContent = n ? block : '–';
+  $('#kFlood .val').textContent = n ? flood : '–';
+  $('#kFlush .val').textContent = flushes;
+  $('#kBlock').classList.toggle('alert', block > 0);
+  $('#kFlood').classList.toggle('alert', flood > 0);
+}
+function renderList(list){
+  const rows = [...list].sort((a, b) => (STATUS[a.state].rank - STATUS[b.state].rank) || (b.hoursWet || 0) - (a.hoursWet || 0) || a.name.localeCompare(b.name));
+  if (!selected || !list.some(d => d.id === selected)) selected = rows[0] ? rows[0].id : null;
+  $('#drainRows').innerHTML = rows.map(d => `<tr data-id="${esc(d.id)}" class="${d.id === selected ? 'sel' : ''}">
+      <td>${chip(d.state)}</td>
+      <td>${esc(d.name)}${d.sim ? '<span class="sim-tag">SIM</span>' : ''}</td>
+      <td class="num">${d.hoursWet ? fmt(d.hoursWet, 0) : '–'}</td>
+      <td class="num">${d.flushes ?? '–'}</td>
+      <td class="num">${fmt(d.level, 1, ' cm')}</td></tr>`).join('');
+  $('#drainEmpty').hidden = rows.length > 0;
+  $('#drainCount').textContent = rows.length ? `${rows.length} total` : '';
+}
+let hoverX = null;
+function renderChart(d){
+  const box = $('#chart');
+  const pts = (hist[d.id] || []).slice(-320);
+  if (pts.length < 2) { box.innerHTML = '<div class="empty">Waiting for readings…</div>'; return; }
+  const W = 640, H = 230, m = {l:38, r:10, t:10, b:26};
+  const t0 = pts[0].t, t1 = Math.max(pts[pts.length - 1].t, t0 + 1);
+  const ymax = Math.max(45, ...pts.map(p => p.level || 0));
+  const x = t => m.l + (t - t0) / (t1 - t0) * (W - m.l - m.r);
+  const y = v => H - m.b - (v / ymax) * (H - m.t - m.b);
+  let g = '';
+  // wet / flushing bands
+  const band = (test, fill) => {
+    let s = null, out = '';
+    pts.forEach((p, i) => {
+      const on = test(p);
+      if (on && s === null) s = i;
+      if ((!on || i === pts.length - 1) && s !== null) {
+        const e = on ? i : i - 1;
+        const xa = x(pts[s].t), xb = x(pts[Math.min(e + 1, pts.length - 1)].t);
+        out += `<rect x="${xa.toFixed(1)}" y="${m.t}" width="${Math.max(1, xb - xa).toFixed(1)}" height="${H - m.t - m.b}" fill="${fill}"/>`;
+        s = null;
+      }
+    });
+    return out;
+  };
+  g += band(p => p.wet && p.state !== 'FLUSHING', 'color-mix(in srgb,var(--warning) 22%,transparent)');
+  g += band(p => p.state === 'FLUSHING', 'color-mix(in srgb,var(--info) 30%,transparent)');
+  // grid + y axis
+  for (let v = 0; v <= ymax; v += 10) {
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    g += `<text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(FLOOD_LEVEL_CM)}" y2="${y(FLOOD_LEVEL_CM)}" stroke="var(--critical)" stroke-dasharray="5 4" stroke-width="1.5"/>`;
+  // x axis labels
+  const span = t1 - t0;
+  for (let i = 0; i <= 4; i++) {
+    const t = t0 + span * i / 4;
+    const lbl = d.sim ? new Date(t).toLocaleString([], {weekday:'short', hour:'2-digit'}) : new Date(t).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second: span < 600000 ? '2-digit' : undefined});
+    g += `<text x="${x(t)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 4 ? 'end' : 'middle'}">${lbl}</text>`;
+  }
+  // line
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.level || 0).toFixed(1)}`).join('');
+  g += `<path d="${path}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<g id="cross" style="display:none"><line id="cl" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-width="1"/><circle id="cd" r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/></g>`;
+  g += `<rect id="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Water level over time for ${esc(d.name)}">${g}</svg><div class="tip" id="tip"></div>`;
+  const svg = box.querySelector('svg');
+  const show = px => {
+    const r = svg.getBoundingClientRect();
+    const vx = px * W / r.width;
+    const tt = t0 + (vx - m.l) / (W - m.l - m.r) * (t1 - t0);
+    let lo = 0, hi = pts.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (pts[mid].t < tt) lo = mid; else hi = mid; }
+    const p = Math.abs(pts[lo].t - tt) < Math.abs(pts[hi].t - tt) ? pts[lo] : pts[hi];
+    const cx = x(p.t), cy = y(p.level || 0);
+    box.querySelector('#cross').style.display = '';
+    box.querySelector('#cl').setAttribute('x1', cx); box.querySelector('#cl').setAttribute('x2', cx);
+    box.querySelector('#cd').setAttribute('cx', cx); box.querySelector('#cd').setAttribute('cy', cy);
+    const tip = box.querySelector('#tip');
+    const when = d.sim ? new Date(p.t).toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'}) + ' (sim)' : clock(p.t);
+    tip.innerHTML = `${esc(when)}<br><b>${fmt(p.level, 1, ' cm')}</b> · ${(STATUS[p.state] || {label: p.wet ? 'Wet' : 'Dry'}).label}`;
+    tip.style.display = 'block';
+    tip.style.left = (cx * r.width / W) + 'px';
+    tip.style.top = (cy * r.height / H) + 'px';
+  };
+  const hit = box.querySelector('#hit');
+  hit.addEventListener('pointermove', e => { hoverX = e.clientX - svg.getBoundingClientRect().left; show(hoverX); });
+  hit.addEventListener('pointerleave', () => { hoverX = null; box.querySelector('#cross').style.display = 'none'; box.querySelector('#tip').style.display = 'none'; });
+  if (hoverX !== null) show(hoverX);
+}
+function renderDetail(list){
+  const d = list.find(x => x.id === selected);
+  $('#detailCard').hidden = !d;
+  if (!d) return;
+  $('#dTitle').innerHTML = esc(d.name) + (d.sim ? '<span class="sim-tag">SIM</span>' : '');
+  $('#dChip').innerHTML = chip(d.state);
+  const rows = [
+    ['Status', (STATUS[d.state] || {}).label],
+    ['Hours wet', d.hoursWet ? fmt(d.hoursWet, 1, ' h') + (d.hoursWet < 48 && d.state === 'WET' ? ` · flush in ${fmt(48 - d.hoursWet, 1, ' h')}` : '') : '–'],
+    ['Flushes (this episode)', d.flushes ?? '–'],
+    ['Water level', fmt(d.level, 1, ' cm')],
+    ['Raining', d.raining ? 'Yes' : 'No'],
+    ['Flush tank', d.tankOk === null ? '–' : d.tankOk ? 'OK' : 'Low'],
+    ['Battery', fmt(d.batt, 2, ' V')],
+    ['Last report', d.sim ? 'simulated' : d.last ? clock(d.last) : '–'],
+    ['Location', d.lat !== null && d.lng !== null ? `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}` : 'not set'],
+  ];
+  if (d.sim) rows.push(['Simulated fault', FAULTS[d.fault].label]);
+  $('#dFields').innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  renderChart(d);
+  // sim controls for the selected drain
+  const sc = $('#dSim');
+  sc.hidden = !d.sim;
+  if (d.sim) {
+    const s = sims[d.id];
+    const want = `${s.id}|${s.fault}|${s.tankOk}|${s.raining}`;
+    if (sc.dataset.key !== want) {
+      sc.dataset.key = want;
+      sc.innerHTML = `<label>Fault <select id="sFault">${Object.entries(FAULTS).map(([k, f]) => `<option value="${k}" ${k === s.fault ? 'selected' : ''}>${f.label}</option>`).join('')}</select></label>
+        <button class="small" id="sRain">${s.raining ? 'Stop rain here' : 'Rain here'}</button>
+        <button class="small" id="sTank">${s.tankOk ? 'Empty the tank' : 'Refill the tank'}</button>
+        <button class="small" id="sClear">Maintenance: clear drain</button>`;
+      $('#sFault').onchange = e => { s.fault = e.target.value; renderAll(); };
+      $('#sRain').onclick = () => { setRain(s, !s.raining); renderAll(); };
+      $('#sTank').onclick = () => { s.tankOk = !s.tankOk; renderAll(); };
+      $('#sClear').onclick = () => { s.fault = 'normal'; s.cleared = true; s.level = 0; renderAll(); };
+    }
+  }
+}
+function renderEvents(){
+  const evs = allEvents().slice(0, 150);
+  const box = $('#events');
+  if (!evs.length) { box.innerHTML = '<div class="empty">No events yet. Run the demo storm to see the full cycle.</div>'; return; }
+  box.innerHTML = evs.map((e, i) => {
+    const s = STATUS[e.to] || STATUS.DRY;
+    const needsAck = ALERT_STATES.has(e.to) && !e.ack;
+    return `<div class="ev ${e.ack ? 'acked' : ''}">
+      <time>${num(e.ts) ? clock(num(e.ts)) : '–'}</time>
+      <span>${chip(e.to)}</span>
+      <span><span class="who">${esc(e.name)}</span>${e.sim ? '<span class="sim-tag">SIM</span>' : ''} · ${esc(e.msg)}</span>
+      <span>${needsAck ? `<button class="small" data-ack="${i}">Acknowledge</button>` : e.ack ? '<span class="muted" style="font-size:12px">acknowledged</span>' : ''}</span>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-ack]').forEach(b => b.onclick = async () => {
+    const e = evs[+b.dataset.ack];
+    if (e.fb) { try { await fbWrite('PATCH', '/events/' + e.key, {ack:true}); } catch { alert('Could not update Firebase.'); } }
+    else { e.ack = true; renderEvents(); }
+  });
+}
+function renderConn(){
+  const fb = $('#pillFb');
+  fb.className = 'pill ' + ({live:'on', connecting:'wait', error:'err', denied:'err'}[fbStatus] || '');
+  fb.lastElementChild.textContent = {off:'Firebase off', connecting:'Connecting…', live:'Firebase live', error:'Firebase error', denied:'Firebase: access denied'}[fbStatus];
+  const tgOn = !!(S.tgToken && S.tgChat && S.alertStation);
+  $('#pillTg').className = 'pill ' + (tgOn ? 'on' : '');
+  $('#pillTg').lastElementChild.textContent = tgOn ? 'Telegram alerts on' : (S.tgToken && S.tgChat ? 'Telegram (viewer only)' : 'Telegram off');
+  $('#pillSim').className = 'pill ' + (S.sim ? 'wait' : '');
+  $('#pillSim').lastElementChild.textContent = S.sim ? 'Simulation on' : 'Simulation off';
+  $('#simCard').hidden = !S.sim;
+  const b = $('#banner');
+  if (!S.dbUrl.trim()) { b.hidden = false; b.textContent = 'Not connected to Firebase. Open Settings and paste the Realtime Database URL to show real drains.'; }
+  else if (fbStatus === 'error' || fbStatus === 'denied') { b.hidden = false; b.textContent = 'Cannot read from Firebase. Check the URL and that the database rules allow reads (test mode).'; }
+  else b.hidden = true;
+}
+function renderAll(){
+  const list = allDrains();
+  renderConn(); renderKPIs(list); renderList(list); renderMap(list); renderDetail(list);
+  if (S.sim) $('#simClock').textContent = `simulated time: ${Math.floor(simHours / 24)} d ${Math.floor(simHours % 24)} h${stormLeft > 0 ? ' · raining' : ''}`;
+}
+
+/* ---------- CSV export (for the test-results slide) ---------- */
+function downloadCsv(name, rows){
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+$('#btnEvCsv').onclick = () => downloadCsv('aedesguard-events.csv',
+  [['time','drain','simulated','from','to','message','acknowledged'], ...allEvents().map(e => [num(e.ts) ? new Date(num(e.ts)).toISOString() : '', e.name, e.sim ? 'yes' : 'no', e.from, e.to, e.msg, e.ack ? 'yes' : 'no'])]);
+$('#btnHistCsv').onclick = () => { if (!selected) return; const d = allDrains().find(x => x.id === selected);
+  downloadCsv(`aedesguard-${selected}.csv`, [['time','level_cm','wet','state'], ...(hist[selected] || []).map(p => [new Date(p.t).toISOString(), p.level, p.wet ? 1 : 0, p.state])]); };
+
+/* ---------- wiring ---------- */
+$('#drainRows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) { selected = tr.dataset.id; hoverX = null; renderAll(); } });
+$('#btnStorm').onclick = () => { setRainAll(true); stormLeft = 3; renderAll(); };
+$('#btnRainOn').onclick = () => { setRainAll(true); stormLeft = 0; renderAll(); };
+$('#btnRainOff').onclick = () => { setRainAll(false); stormLeft = 0; renderAll(); };
+$('#btnSimReset').onclick = () => { makeSims(); renderAll(); renderEvents(); };
+$('#selSpeed').value = String(S.hourMs);
+$('#selSpeed').onchange = e => { S.hourMs = +e.target.value; saveSettings(); restartSimTimer(); };
+
+const dlg = $('#dlg');
+$('#btnSettings').onclick = () => {
+  $('#fDb').value = S.dbUrl; $('#fTok').value = S.tgToken; $('#fChat').value = S.tgChat;
+  $('#fStation').checked = S.alertStation; $('#fSim').checked = S.sim; $('#fInfo').checked = S.tgInfo;
+  $('#fOff').value = S.offlineS; $('#tgResult').textContent = '';
+  dlg.showModal();
+};
+$('#btnTestTg').onclick = async () => {
+  const saved = {tgToken:S.tgToken, tgChat:S.tgChat};
+  S.tgToken = $('#fTok').value; S.tgChat = $('#fChat').value;
+  $('#tgResult').textContent = 'Sending…';
+  $('#tgResult').textContent = 'Result: ' + await sendTelegram('🦟 AedesGuard test alert. If you can read this, alerts are working.');
+  Object.assign(S, saved);
+};
+async function testDrain(method){
+  const url = $('#fDb').value.trim().replace(/\.json$/,'').replace(/\/+$/,'');
+  if (!/^https:\/\//.test(url)) { $('#fbResult').textContent = 'Paste the database URL first.'; return; }
+  const body = method === 'DELETE' ? undefined : JSON.stringify({name:'Test drain', lat:3.1858, lng:101.5005, state:'WET', wet:true,
+    level_cm:1.6, hours_wet:5, flushes:0, raining:false, tank_ok:true, batt_v:11.7, last_seen:{'.sv':'timestamp'}});
+  $('#fbResult').textContent = 'Working…';
+  try {
+    const r = await fetch(url + '/nodes/drainTest.json', {method, headers:{'Content-Type':'application/json'}, body});
+    $('#fbResult').textContent = r.ok ? (method === 'DELETE' ? 'Removed.' : 'Written. Save, and it appears in the list.')
+      : r.status === 401 ? 'Permission denied: set the database rules to test mode.' : 'Error: HTTP ' + r.status;
+  } catch { $('#fbResult').textContent = 'Could not reach that URL. Check it is copied exactly.'; }
+}
+$('#btnTestFb').onclick = () => testDrain('PATCH');
+$('#btnDelFb').onclick = () => testDrain('DELETE');
+dlg.addEventListener('close', () => {
+  if (dlg.returnValue !== 'save') return;
+  const oldDb = S.dbUrl, oldSim = S.sim;
+  S.dbUrl = $('#fDb').value.trim(); S.tgToken = $('#fTok').value.trim(); S.tgChat = $('#fChat').value.trim();
+  S.alertStation = $('#fStation').checked; S.sim = $('#fSim').checked; S.tgInfo = $('#fInfo').checked;
+  S.offlineS = Math.max(10, +$('#fOff').value || 120);
+  saveSettings();
+  if (S.sim !== oldSim) { makeSims(); }
+  if (S.dbUrl !== oldDb) connectFirebase();
+  renderAll(); renderEvents();
+});
+
+/* ---------- start ---------- */
+initMap();
+makeSims();
+restartSimTimer();
+connectFirebase();
+renderAll(); renderEvents();
+setInterval(() => { checkTransitions(); renderAll(); }, 300);
+</script>
+</body>
+</html>

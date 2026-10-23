@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AedesGuard Virtual Prototype</title>
+<style>
+:root{--bg:#eceee9;--panel:#fff;--ink:#1b2320;--muted:#5c6762;--line:#d4d9d4;--accent:#e3a600}
+@media (prefers-color-scheme:dark){:root{--bg:#111513;--panel:#1a1f1d;--ink:#e4eae6;--muted:#98a39d;--line:#2e3833;--accent:#f2b705}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:32px 16px}
+main{max-width:860px;margin:0 auto;display:grid;gap:20px}
+h1{margin:0;font-size:34px}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+p{margin:0;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+a.card{display:grid;gap:8px;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:6px;padding:20px;color:inherit;text-decoration:none}
+a.card:hover{border-color:var(--ink);border-left-color:var(--accent)}
+a.card h2{margin:0;font-size:21px}
+a.card span{font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">Sime Darby Property University Hackathon 2026</span>
+  <h1>AedesGuard virtual prototype</h1>
+  <p>A smart storm drain that stops Aedes mosquitoes breeding in standing water. Open either prototype below. Start with the Digital Twin and press <b>Play guided demo</b>.</p>
+  <div class="cards">
+    <a class="card" href="digital-twin.html">
+      <h2>1 · Drain Digital Twin</h2>
+      <p>3D model of one AedesGuard drain beside a normal drain. Make it rain, block the outlet, and watch the controller respond.</p>
+      <span>Open the twin →</span>
+    </a>
+    <a class="card" href="dashboard.html">
+      <h2>2 · Township Dashboard</h2>
+      <p>What the maintenance team sees: every drain on a map, live status, alerts and an event log.</p>
+      <span>Open the dashboard →</span>
+    </a>
+  </div>
+  <p>Full instructions are in the README of this repository.</p>
+</main>
+</body>
+</html>
