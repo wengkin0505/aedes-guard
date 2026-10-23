@@ -29,9 +29,9 @@ Just click. Each link opens the prototype in your browser, so you don't need to 
 
 | | Open the prototype |
 |---|---|
-| 🏠 | **[Landing page](https://wengkin0505.github.io/aedes-guard/)**: links to both prototypes |
-| 🧊 | **[Drain Digital Twin](https://wengkin0505.github.io/aedes-guard/digital-twin.html)**: start here, then press **Play guided demo** |
-| 📊 | **[Township Dashboard](https://wengkin0505.github.io/aedes-guard/dashboard.html)**: press **Run demo storm** |
+| 🏠 | **[Landing page](https://raw.githack.com/wengkin0505/aedes-guard/main/index.html)**: links to both prototypes |
+| 🧊 | **[Drain Digital Twin](https://raw.githack.com/wengkin0505/aedes-guard/main/digital-twin.html)**: start here, then press **Play guided demo** |
+| 📊 | **[Township Dashboard](https://raw.githack.com/wengkin0505/aedes-guard/main/dashboard.html)**: press **Run demo storm** |
 
 Use a recent **Google Chrome or Microsoft Edge** on a laptop or desktop, with an **internet connection** (the pages load the 3D engine, map tiles and fonts online).
 
